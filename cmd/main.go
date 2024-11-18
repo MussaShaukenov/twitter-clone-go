@@ -2,12 +2,16 @@ package main
 
 import (
 	"MussaShaukenov/twitter-clone-go/internal/tweet"
+	"MussaShaukenov/twitter-clone-go/internal/user"
 	"MussaShaukenov/twitter-clone-go/pkg/database"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
+	"net/http"
 	"os"
+	"time"
 )
 
 type Config struct {
@@ -38,14 +42,43 @@ func main() {
 		addr:   addr,
 	}
 
-	router := chi.NewRouter()
-	tweetRouter, err := tweet.InitializeTweetApp(config.db, router)
+	// Initialize the root router
+	rootRouter := chi.NewRouter()
+
+	// Initialize tweet module
+	_, err = tweet.InitializeTweetApp(config.db, rootRouter)
 	if err != nil {
 		sugar.Fatal("failed to initialize tweet app: ", err)
 	}
 
-	err = Serve(config, tweetRouter)
+	// Initialize user module
+	_, err = user.InitializeUserApp(config.db, rootRouter)
+	if err != nil {
+		sugar.Fatal("failed to initialize user app: ", err)
+	}
+
+	// Serve the root router
+	err = Serve(config, rootRouter)
 	if err != nil {
 		sugar.Fatal(err)
 	}
+}
+
+func Serve(config *Config, routes http.Handler) error {
+	srv := &http.Server{
+		Addr:         config.addr,
+		Handler:      routes,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	config.logger.Info("starting server on port: ", srv.Addr)
+
+	err := srv.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
 }
