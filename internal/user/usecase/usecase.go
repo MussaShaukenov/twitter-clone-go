@@ -6,11 +6,12 @@ import (
 	"MussaShaukenov/twitter-clone-go/internal/user/repository"
 	"MussaShaukenov/twitter-clone-go/internal/user/utils"
 	"errors"
+	"log"
 )
 
 type UserUseCase interface {
-	Register(user *domain.User) error
-	Authorize(username, password string) (string, error) // returns session token
+	Register(dto dto.RegisterUserRequest) error
+	Authorize(input dto.LoginRequest) (string, error)
 	Logout(sessionToken string) error
 }
 
@@ -26,6 +27,7 @@ func NewUserUseCase(repo repository.UserRepo) *userUseCase {
 
 func (uc *userUseCase) Register(dto dto.RegisterUserRequest) error {
 	if len(dto.FirstName) == 0 {
+		log.Println(dto.FirstName)
 		return errors.New("first name is empty")
 	}
 	if len(dto.LastName) == 0 {
@@ -51,9 +53,12 @@ func (uc *userUseCase) Register(dto dto.RegisterUserRequest) error {
 	return uc.repo.Insert(user)
 }
 
-func (uc *userUseCase) Authorize(username, password string) (string, error) {
+func (uc *userUseCase) Authorize(input dto.LoginRequest) (string, error) {
+	if len(input.Username) == 0 {
+		return "", errors.New("invalid username")
+	}
 	// Get user by username
-	user, err := uc.repo.GetByUsername(username)
+	user, err := uc.repo.GetByUsername(input.Username)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			return "", domain.ErrInvalidCredentials
@@ -62,7 +67,7 @@ func (uc *userUseCase) Authorize(username, password string) (string, error) {
 	}
 
 	// Validate the password
-	if !utils.CheckPassword(password, user.Password) {
+	if !utils.CheckPassword(input.Password, user.Password) {
 		return "", domain.ErrInvalidCredentials
 	}
 

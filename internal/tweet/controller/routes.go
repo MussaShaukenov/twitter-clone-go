@@ -13,6 +13,7 @@ func RegisterTweetRoutes(ctrl TweetController) http.Handler {
 	router.Get("/", ctrl.ListTweetsHandler)
 	router.Patch("/{id}", ctrl.UpdateTweetHandler)
 	router.Delete("/{id}", ctrl.DeleteTweetHandler)
+	router.Get("/{user_id}", ctrl.GetUserTweets)
 
 	return router
 }

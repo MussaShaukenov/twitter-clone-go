@@ -8,4 +8,5 @@ type TweetRepository interface {
 	Update(in *domain.Tweet) (*domain.Tweet, error)
 	List() ([]*domain.Tweet, error)
 	Delete(id int) error
+	GetUserTweets(id int) ([]*domain.Tweet, error)
 }

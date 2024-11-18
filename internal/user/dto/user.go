@@ -2,8 +2,8 @@ package dto
 
 // DTO for user registration
 type RegisterUserRequest struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 	Email     string `json:"email"`
 	Age       int    `json:"age,omitempty"`
 	Username  string `json:"username"`

@@ -12,14 +12,16 @@ type Tweet struct {
 	Content   string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	UserId    int
 }
 
-func ConvertFromDto(id int, title, content, topic string) *Tweet {
+func ConvertFromDto(id int, title, content, topic string, userId int) *Tweet {
 	return &Tweet{
 		ID:        int64(id),
 		Title:     title,
 		Content:   content,
 		Topic:     topic,
+		UserId:    userId,
 		CreatedAt: time.Now(),
 	}
 }

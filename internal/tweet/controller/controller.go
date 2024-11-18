@@ -8,4 +8,5 @@ type TweetController interface {
 	ListTweetsHandler(w http.ResponseWriter, r *http.Request)
 	UpdateTweetHandler(w http.ResponseWriter, r *http.Request)
 	DeleteTweetHandler(w http.ResponseWriter, r *http.Request)
+	GetUserTweets(w http.ResponseWriter, r *http.Request)
 }

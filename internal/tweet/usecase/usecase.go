@@ -15,6 +15,7 @@ type TweetUseCase interface {
 	List() ([]*dto.TweetDto, error)
 	Update(in dto.TweetDto) (*dto.GetTweetResponse, error)
 	Delete(id int) error
+	GetUserTweets(id int) ([]*dto.TweetDto, error)
 }
 
 type tweetUseCase struct {
@@ -36,7 +37,7 @@ func (uc *tweetUseCase) Create(dto dto.TweetDto) error {
 		return errors.New("content cannot be empty")
 	}
 
-	tweet := domain.ConvertFromDto(0, dto.Title, dto.Content, dto.Topic)
+	tweet := domain.ConvertFromDto(0, dto.Title, dto.Content, dto.Topic, dto.UserId)
 	err := uc.tweetRepository.Insert(tweet)
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func (uc *tweetUseCase) List() ([]*dto.TweetDto, error) {
 }
 
 func (uc *tweetUseCase) Update(in dto.TweetDto) (*dto.GetTweetResponse, error) {
-	tweet := domain.ConvertFromDto(in.ID, in.Title, in.Content, in.Topic)
+	tweet := domain.ConvertFromDto(in.ID, in.Title, in.Content, in.Topic, in.UserId)
 	updatedTweet, err := uc.tweetRepository.Update(tweet)
 	if err != nil {
 		log.Println("could not update the updatedTweet")
@@ -92,4 +93,20 @@ func (uc *tweetUseCase) Delete(id int) error {
 		return fmt.Errorf("could not delete: %w", err)
 	}
 	return nil
+}
+
+func (uc *tweetUseCase) GetUserTweets(id int) ([]*dto.TweetDto, error) {
+	if id < 1 {
+		fmt.Errorf("invalid ID: %v", id)
+	}
+	tweets, err := uc.tweetRepository.GetUserTweets(id)
+	if err != nil {
+		log.Printf("could not get tweets of user %v", id)
+		return nil, err
+	}
+	var result []*dto.TweetDto
+	for _, tweet := range tweets {
+		result = append(result, domain.ConvertToDto(tweet))
+	}
+	return result, nil
 }

@@ -158,3 +158,23 @@ func (c *controller) DeleteTweetHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 }
+
+func (c *controller) GetUserTweets(w http.ResponseWriter, r *http.Request) {
+	userId, err := strconv.Atoi(chi.URLParam(r, "user_id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	tweets, err := c.service.GetUserTweets(userId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = utils.WriteJson(w, http.StatusOK, tweets, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}

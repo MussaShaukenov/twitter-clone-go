@@ -20,11 +20,11 @@ func NewPostgres(db *pgxpool.Pool) *postgres {
 
 func (pg *postgres) Insert(in *domain.Tweet) error {
 	query := `
-				INSERT INTO tweets (title, content, topic) 
-				VALUES ($1, $2, $3)
+				INSERT INTO tweets (title, content, topic, user_id) 
+				VALUES ($1, $2, $3, $4)
 				RETURNING id, created_at`
 
-	args := []interface{}{in.Title, in.Content, in.Topic}
+	args := []interface{}{in.Title, in.Content, in.Topic, in.UserId}
 	return pg.Db.QueryRow(context.Background(), query, args...).
 		Scan(&in.ID, &in.CreatedAt)
 }
@@ -126,4 +126,39 @@ func (pg *postgres) Delete(id int) error {
 		return domain.ErrRecordNotFoundX
 	}
 	return nil
+}
+
+func (pg *postgres) GetUserTweets(id int) ([]*domain.Tweet, error) {
+	query := `
+			SELECT * FROM tweets
+			WHERE user_id = $1`
+
+	rows, err := pg.Db.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tweets []*domain.Tweet
+	for rows.Next() {
+		var tweet *domain.Tweet
+		err = rows.Scan(
+			&tweet.ID,
+			&tweet.Title,
+			&tweet.Content,
+			&tweet.Topic,
+			&tweet.UserId,
+			&tweet.CreatedAt,
+			&tweet.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tweets = append(tweets, tweet)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tweets, nil
 }

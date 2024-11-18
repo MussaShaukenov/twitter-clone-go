@@ -5,6 +5,7 @@ import (
 	"MussaShaukenov/twitter-clone-go/internal/user/usecase"
 	"MussaShaukenov/twitter-clone-go/pkg/utils"
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -26,6 +27,8 @@ func (ctrl *UserController) RegisterHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	log.Println("incoming input:", input)
 
 	err = ctrl.useCase.Register(input)
 	if err != nil {
