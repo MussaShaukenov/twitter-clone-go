@@ -13,7 +13,16 @@ func RegisterTweetRoutes(ctrl TweetController) http.Handler {
 	router.Get("/", ctrl.ListTweetsHandler)
 	router.Patch("/{id}", ctrl.UpdateTweetHandler)
 	router.Delete("/{id}", ctrl.DeleteTweetHandler)
-	router.Get("/{user_id}", ctrl.GetUserTweets)
+	router.Get("/{user_id}", ctrl.GetUserTweetsHandler)
 
+	router.Post("/{tweet_id}/tags", ctrl.AddTweetTagHandler)
+	router.Get("/{tweet_id}/tags", ctrl.GetTweetTagsHandler)
+
+	return router
+}
+
+func RegisterTagsRoutes(ctrl TweetTagController) http.Handler {
+	router := chi.NewRouter()
+	router.Get("/", ctrl.ListTagsHandler)
 	return router
 }

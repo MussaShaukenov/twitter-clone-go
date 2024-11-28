@@ -10,3 +10,9 @@ type TweetRepository interface {
 	Delete(id int) error
 	GetUserTweets(id int) ([]*domain.Tweet, error)
 }
+
+type TweetTagRepository interface {
+	AddTag(tweetId int64, tagId int64) error
+	GetTweetTags(tweetId int64) ([]*domain.Tag, error)
+	ListTags() ([]*domain.Tag, error)
+}

@@ -12,6 +12,11 @@ type TweetDto struct {
 	UserId    int       `json:"userId"`
 }
 
+type TagDto struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 type UpdateTweetDto struct {
 	Title   *string `json:"title,omitempty"`
 	Content *string `json:"content,omitempty"`

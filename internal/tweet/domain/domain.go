@@ -13,6 +13,12 @@ type Tweet struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	UserId    int
+	Tags      []Tag
+}
+
+type Tag struct {
+	ID   int64
+	Name string
 }
 
 func ConvertFromDto(id int, title, content, topic string, userId int) *Tweet {

@@ -15,6 +15,7 @@ func InitializeTweetApp(db *pgxpool.Pool, router chi.Router) (http.Handler, erro
 	controller := tweetCtrl.NewController(uc)
 
 	router.Mount("/tweets", tweetCtrl.RegisterTweetRoutes(controller))
+	router.Mount("/tags", tweetCtrl.RegisterTagsRoutes(controller))
 
 	return router, nil
 }
