@@ -5,6 +5,7 @@ import (
 	"MussaShaukenov/twitter-clone-go/internal/user"
 	"MussaShaukenov/twitter-clone-go/pkg/database"
 	"errors"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -22,8 +23,12 @@ type Config struct {
 
 func main() {
 	godotenv.Load()
+	fmt.Println("loading env")
 	databaseUrl := os.Getenv("DATABASE_URL")
 	addr := os.Getenv("ADDR")
+
+	fmt.Println("here")
+	fmt.Println("databaseUrl: ", databaseUrl)
 
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() // flushes buffer
