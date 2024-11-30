@@ -7,21 +7,26 @@ import (
 	"MussaShaukenov/twitter-clone-go/internal/user/utils"
 	"errors"
 	"log"
+	"time"
 )
 
 type UserUseCase interface {
 	Register(dto dto.RegisterUserRequest) error
 	Authorize(input dto.LoginRequest) (string, error)
 	Logout(sessionToken string) error
+	Authorize2FA(email string) string
+	VerifyOTP(email, otp string) (string, error)
 }
 
 type userUseCase struct {
-	repo repository.UserRepo
+	repo      repository.UserRepo
+	redisRepo repository.OTPRepo
 }
 
-func NewUserUseCase(repo repository.UserRepo) *userUseCase {
+func NewUserUseCase(repo repository.UserRepo, redisRepo repository.OTPRepo) *userUseCase {
 	return &userUseCase{
-		repo: repo,
+		repo:      repo,
+		redisRepo: redisRepo,
 	}
 }
 
@@ -61,7 +66,7 @@ func (uc *userUseCase) Authorize(input dto.LoginRequest) (string, error) {
 	user, err := uc.repo.GetByUsername(input.Username)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return "", domain.ErrInvalidCredentials
+			return "", domain.ErrRecordNotFound
 		}
 		return "", err
 	}
@@ -71,22 +76,70 @@ func (uc *userUseCase) Authorize(input dto.LoginRequest) (string, error) {
 		return "", domain.ErrInvalidCredentials
 	}
 
-	// Generate a session token
-	sessionToken, err := utils.GenerateSessionToken(user.ID)
+	// Check if it's user's first login
+	isFirstLogin, err := uc.repo.IsFirstLogin(user.ID)
 	if err != nil {
 		return "", err
 	}
 
-	// Store session in repository (optional, if using a session store)
-	err = uc.repo.CreateSession(user.ID, sessionToken)
+	if isFirstLogin {
+		code := uc.Authorize2FA(user.Email)
+		return code, nil
+	}
+
+	return uc.generateAndStoreSession(user.ID)
+}
+
+func (uc *userUseCase) Authorize2FA(username string) string {
+	// Get user email
+	user, err := uc.repo.GetByUsername(username)
+
+	code := utils.GenerateRandomCode(6)
+
+	// For now, just log OTP
+	log.Printf("2FA code for %s: %s\n", user.Email, code)
+
+	// Store the OTP
+	err = uc.redisRepo.StoreOTP(user.Email, code)
+	if err != nil {
+		log.Println("Error storing OTP:", err)
+	}
+	return code
+}
+
+func (uc *userUseCase) VerifyOTP(email, otp string) (string, error) {
+	// retrieve the OTP
+	storedOtp, err := uc.redisRepo.GetStoreOTP(email)
+	if err != nil {
+		return "", errors.New("failed to retrieve OTP")
+	}
+
+	// compare the OTPs
+	if storedOtp != otp {
+		return "", errors.New("invalid OTP")
+	}
+
+	// Generate and return session token
+	user, err := uc.repo.GetByEmail(email)
 	if err != nil {
 		return "", err
 	}
+	return uc.generateAndStoreSession(user.ID)
+}
 
+func (uc *userUseCase) generateAndStoreSession(userID int) (string, error) {
+	sessionToken, err := utils.GenerateSessionToken(userID)
+	if err != nil {
+		return "", err
+	}
+	err = uc.redisRepo.CreateSession(userID, sessionToken, 24*time.Hour)
+	if err != nil {
+		return "", err
+	}
 	return sessionToken, nil
 }
 
 func (uc *userUseCase) Logout(sessionToken string) error {
 	// Invalidate the session token in the repository (if using a session store)
-	return uc.repo.DeleteSession(sessionToken)
+	return uc.redisRepo.DeleteSession(sessionToken)
 }

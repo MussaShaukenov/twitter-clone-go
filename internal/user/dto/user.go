@@ -27,3 +27,8 @@ type LoginResponse struct {
 	Message string `json:"message"`
 	Token   string `json:"token"`
 }
+
+type VerifyOTPRequest struct {
+	Email string `json:"email"`
+	OTP   string `json:"otp"`
+}

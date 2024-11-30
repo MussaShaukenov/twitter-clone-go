@@ -71,7 +71,7 @@ func main() {
 	}
 
 	// Initialize user module
-	_, err = user.InitializeUserApp(config.db, rootRouter)
+	_, err = user.InitializeUserApp(config.db, redisClient, rootRouter)
 	if err != nil {
 		sugar.Fatal("failed to initialize user app: ", err)
 	}

@@ -73,6 +73,56 @@ func (ctrl *UserController) AuthorizeHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (ctrl *UserController) Authorize2FAHandler(w http.ResponseWriter, r *http.Request) {
+	var input dto.LoginRequest
+
+	err := utils.ReadJson(w, r, &input)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	token := ctrl.useCase.Authorize2FA(input.Username)
+	response := map[string]string{
+		"message": "successfully authorized",
+		"token":   token,
+	}
+
+	err = utils.WriteJson(w, http.StatusOK, response, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (ctrl *UserController) VerifyOTPHandler(w http.ResponseWriter, r *http.Request) {
+	var input dto.VerifyOTPRequest
+
+	err := utils.ReadJson(w, r, &input)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	token, err := ctrl.useCase.VerifyOTP(input.Email, input.OTP)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	response := map[string]string{
+		"message": "successfully authorized",
+		"token":   token,
+	}
+
+	err = utils.WriteJson(w, http.StatusOK, response, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+}
+
 func (ctrl *UserController) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {

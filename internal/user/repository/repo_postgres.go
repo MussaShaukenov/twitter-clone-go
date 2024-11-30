@@ -5,9 +5,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
-	"time"
 )
 
 type postgresRepo struct {
@@ -59,6 +59,25 @@ func (pg *postgresRepo) Get(id int) (*domain.User, error) {
 	return &user, nil
 }
 
+func (pg *postgresRepo) GetUserEmail(id int) (string, error) {
+	query := `
+		SELECT email FROM users
+		WHERE id = $1`
+
+	var email string
+	err := pg.Db.QueryRow(context.Background(), query, id).Scan(&email)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return "", domain.ErrRecordNotFound
+		default:
+			return "", err
+		}
+	}
+
+	return email, nil
+}
+
 func (pg *postgresRepo) Delete(id int) error {
 	query := `DELETE FROM users WHERE id = $1`
 	result, err := pg.Db.Exec(context.Background(), query, id)
@@ -96,14 +115,35 @@ func (pg *postgresRepo) GetByUsername(username string) (*domain.User, error) {
 	return &user, nil
 }
 
-func (pg *postgresRepo) CreateSession(userID int, token string) error {
-	query := `INSERT INTO sessions (user_id, token, created_at) VALUES ($1, $2, $3)`
-	_, err := pg.Db.Exec(context.Background(), query, userID, token, time.Now())
-	return err
+func (r *postgresRepo) GetByEmail(email string) (*domain.User, error) {
+	var user domain.User
+	query := `SELECT id, first_name, last_name, email, username, password FROM users WHERE email = $1`
+	err := r.Db.QueryRow(context.Background(), query, email).Scan(
+		&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Username, &user.Password)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, domain.ErrRecordNotFound
+		default:
+			return nil, fmt.Errorf("failed to get user by email: %w", err)
+		}
+	}
+	return &user, nil
 }
 
-func (pg *postgresRepo) DeleteSession(token string) error {
-	query := `DELETE FROM sessions WHERE token = $1`
-	_, err := pg.Db.Exec(context.Background(), query, token)
-	return err
+func (pg *postgresRepo) IsFirstLogin(userId int) (bool, error) {
+	var user domain.User
+	query := `SELECT id, is_first_login FROM users WHERE id = $1`
+	err := pg.Db.QueryRow(context.Background(), query, userId).Scan(&user.ID, &user.IsFirstLogin)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return false, domain.ErrRecordNotFound
+		default:
+			return false, fmt.Errorf("failed to get first login status: %w", err)
+		}
+	}
+
+	return !user.IsFirstLogin, nil
+
 }
