@@ -9,8 +9,10 @@ services:
       - .:/app
     depends_on:
       - db
+      - redis
     environment:
         - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+        - REDIS_ADDR=redis:6379
   db:
     image: postgres:17
     container_name: twitter_db
@@ -20,6 +22,12 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5433:5432"
+  redis:
+    image: redis:7
+    container_name: twitter_redis
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--appendonly", "yes" ]  # Enable persistence
   migrate:
     build: .
     container_name: twitter_migrate

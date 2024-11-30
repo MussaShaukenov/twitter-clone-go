@@ -3,20 +3,43 @@ package repository
 import (
 	"MussaShaukenov/twitter-clone-go/internal/tweet/domain"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+	"log"
+	"time"
 )
 
 type postgres struct {
-	Db *pgxpool.Pool
+	Db          *pgxpool.Pool
+	RedisClient *redis.Client
+	CacheTTL    time.Duration
 }
 
-func NewPostgres(db *pgxpool.Pool) *postgres {
+func NewPostgres(db *pgxpool.Pool, redisClient *redis.Client, cacheTTL time.Duration) *postgres {
 	return &postgres{
-		Db: db,
+		Db:          db,
+		RedisClient: redisClient,
+		CacheTTL:    cacheTTL,
 	}
+}
+
+func (pg *postgres) RebuildCache() error {
+	// fetch all tweets
+	tweets, err := pg.List()
+	if err != nil {
+		return err
+	}
+
+	// serialize tweets and store them in Redis
+	cachedData, err := json.Marshal(tweets)
+	if err != nil {
+		return err
+	}
+	return pg.RedisClient.Set(context.Background(), "tweets:list", cachedData, pg.CacheTTL).Err()
 }
 
 func (pg *postgres) Insert(in *domain.Tweet) error {
@@ -26,8 +49,22 @@ func (pg *postgres) Insert(in *domain.Tweet) error {
 				RETURNING id, created_at`
 
 	args := []interface{}{in.Title, in.Content, in.Topic, in.UserId}
-	return pg.Db.QueryRow(context.Background(), query, args...).
-		Scan(&in.ID, &in.CreatedAt)
+	err := pg.Db.QueryRow(context.Background(), query, args...).Scan(&in.ID, &in.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	// Delete cache
+	if err := pg.RedisClient.Del(context.Background(), "tweets:list").Err(); err != nil {
+		return fmt.Errorf("failed to delete cache: %w", err)
+	}
+
+	// Invalidate cache
+	if err := pg.RebuildCache(); err != nil {
+		return fmt.Errorf("failed to rebuild cache: %w", err)
+	}
+
+	return nil
 }
 
 func (pg *postgres) Get(id int64) (*domain.Tweet, error) {
@@ -58,6 +95,21 @@ func (pg *postgres) Get(id int64) (*domain.Tweet, error) {
 }
 
 func (pg *postgres) List() ([]*domain.Tweet, error) {
+	ctx := context.Background()
+	cacheKey := "tweets:list"
+
+	// Check if the data is in the cache
+	cachedTweets, err := pg.RedisClient.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var tweets []*domain.Tweet
+		err := json.Unmarshal([]byte(cachedTweets), &tweets)
+		if err == nil {
+			log.Println("Cache hit")
+			return tweets, nil
+		}
+	}
+	log.Println("simulating long query")
+	time.Sleep(5 * time.Second)
 	query := `SELECT id, title, content, topic, created_at FROM tweets`
 
 	rows, err := pg.Db.Query(context.Background(), query)
@@ -84,6 +136,13 @@ func (pg *postgres) List() ([]*domain.Tweet, error) {
 
 	if err = rows.Err(); err != nil {
 		return nil, err
+	}
+
+	// Save the data to the cache
+	tweetsJson, err := json.Marshal(tweets)
+	if err == nil {
+		pg.RedisClient.Set(ctx, cacheKey, tweetsJson, pg.CacheTTL)
+		log.Println("Cache miss")
 	}
 
 	return tweets, nil
@@ -113,6 +172,17 @@ func (pg *postgres) Update(in *domain.Tweet) (*domain.Tweet, error) {
 		}
 	}
 
+	// Delete cache
+	if err := pg.RedisClient.Del(context.Background(), "tweets:list").Err(); err != nil {
+		return nil, fmt.Errorf("failed to delete cache: %w", err)
+
+	}
+
+	// Rebuild the cache
+	if err := pg.RebuildCache(); err != nil {
+		return nil, fmt.Errorf("failed to rebuild cache: %w", err)
+	}
+
 	return in, err
 }
 
@@ -126,6 +196,17 @@ func (pg *postgres) Delete(id int) error {
 	if result.RowsAffected() == 0 {
 		return domain.ErrRecordNotFoundX
 	}
+
+	// Delete cache
+	if err := pg.RedisClient.Del(context.Background(), "tweets:list").Err(); err != nil {
+		return fmt.Errorf("failed to delete cache: %w", err)
+	}
+
+	// Rebuild the cache
+	if err := pg.RebuildCache(); err != nil {
+		return fmt.Errorf("failed to rebuild cache: %w", err)
+	}
+
 	return nil
 }
 

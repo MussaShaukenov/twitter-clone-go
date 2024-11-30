@@ -4,11 +4,13 @@ import (
 	"MussaShaukenov/twitter-clone-go/internal/tweet"
 	"MussaShaukenov/twitter-clone-go/internal/user"
 	"MussaShaukenov/twitter-clone-go/pkg/database"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -25,21 +27,33 @@ func main() {
 	godotenv.Load()
 	fmt.Println("loading env")
 	databaseUrl := os.Getenv("DATABASE_URL")
+	redisAddr := os.Getenv("REDIS_ADDR")
 	addr := os.Getenv("ADDR")
 
-	fmt.Println("here")
-	fmt.Println("databaseUrl: ", databaseUrl)
-
+	// Logger setup
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() // flushes buffer
 	sugar := logger.Sugar()
 
+	// Database setup
 	db, err := database.OpenDB(databaseUrl)
 	if err != nil {
 		sugar.Fatal("error during connection")
 	}
 	defer db.Close()
 	sugar.Info("connected to DB")
+
+	// Redis setup
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: redisAddr,
+	})
+	defer redisClient.Close()
+
+	// Verify Redis connection
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		sugar.Fatal("failed to connect to Redis: ", err)
+	}
+	sugar.Info("connected to Redis")
 
 	config := &Config{
 		db:     db,
@@ -51,7 +65,7 @@ func main() {
 	rootRouter := chi.NewRouter()
 
 	// Initialize tweet module
-	_, err = tweet.InitializeTweetApp(config.db, rootRouter)
+	_, err = tweet.InitializeTweetApp(config.db, redisClient, rootRouter)
 	if err != nil {
 		sugar.Fatal("failed to initialize tweet app: ", err)
 	}
