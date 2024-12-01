@@ -1,21 +1,44 @@
-version: "3.8"
+version: "3.9"
 services:
-  app:
-    build: .
-    container_name: twitter_app
+  tweet-service:
+    build:
+      context: ./tweet-service
+      dockerfile: Dockerfile
+    container_name: tweet_service
     ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
+      - "9001:8000"
+    env_file:
+      - ./tweet-service/.env
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone?search_path=tweet_service_schema
+      - REDIS_ADDR=redis:6379
     depends_on:
       - db
       - redis
+    volumes:
+      - ./tweet-service:/app
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user_service
+    ports:
+      - "9002:8000"
+    env_file:
+      - ./user-service/.env
     environment:
-        - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-        - REDIS_ADDR=redis:6379
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone?search_path=user_service_schema
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./user-service:/app
+
   db:
     image: postgres:17
-    container_name: twitter_db
+    container_name: postgres_db
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -23,21 +46,16 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Persistent storage for PostgreSQL data
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
   redis:
     image: redis:7
-    container_name: twitter_redis
+    container_name: redis_cache
     ports:
       - "6379:6379"
     command: [ "redis-server", "--appendonly", "yes" ]  # Enable persistence
-  migrate:
-    build: .
-    container_name: twitter_migrate
-    depends_on:
-      - db
-    entrypoint: >
-      goose -dir migrations postgres 
-      postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB} up
+
 volumes:
   postgres_data:
     driver: local
