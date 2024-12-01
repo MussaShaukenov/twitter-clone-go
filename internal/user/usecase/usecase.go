@@ -16,6 +16,7 @@ type UserUseCase interface {
 	Logout(sessionToken string) error
 	Authorize2FA(email string) string
 	VerifyOTP(email, otp string) (string, error)
+	List() ([]*domain.User, error)
 }
 
 type userUseCase struct {
@@ -142,4 +143,8 @@ func (uc *userUseCase) generateAndStoreSession(userID int) (string, error) {
 func (uc *userUseCase) Logout(sessionToken string) error {
 	// Invalidate the session token in the repository (if using a session store)
 	return uc.redisRepo.DeleteSession(sessionToken)
+}
+
+func (uc *userUseCase) List() ([]*domain.User, error) {
+	return uc.repo.List()
 }

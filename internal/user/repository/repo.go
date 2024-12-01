@@ -13,6 +13,7 @@ type UserRepo interface {
 	GetUserEmail(id int) (string, error)
 	GetByEmail(email string) (*domain.User, error)
 	IsFirstLogin(userId int) (bool, error)
+	List() ([]*domain.User, error)
 }
 
 type OTPRepo interface {

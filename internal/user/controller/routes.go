@@ -1,8 +1,9 @@
 package controller
 
 import (
-	"github.com/go-chi/chi/v5"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func RegisterUserRoutes(ctrl *UserController) http.Handler {
@@ -13,6 +14,7 @@ func RegisterUserRoutes(ctrl *UserController) http.Handler {
 	router.Post("/authorize2fa", ctrl.Authorize2FAHandler)
 	router.Post("/verifyotp", ctrl.VerifyOTPHandler)
 	router.Post("/logout", ctrl.LogoutHandler)
+	router.Get("/", ctrl.ListHandler)
 
 	return router
 }

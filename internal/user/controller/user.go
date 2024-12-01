@@ -140,3 +140,17 @@ func (ctrl *UserController) LogoutHandler(w http.ResponseWriter, r *http.Request
 		"message": "logout successful",
 	})
 }
+
+func (ctrl *UserController) ListHandler(w http.ResponseWriter, r *http.Request) {
+	users, err := ctrl.useCase.List()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = utils.WriteJson(w, http.StatusOK, users, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}

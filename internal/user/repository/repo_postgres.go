@@ -6,8 +6,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type postgresRepo struct {
@@ -145,5 +146,24 @@ func (pg *postgresRepo) IsFirstLogin(userId int) (bool, error) {
 	}
 
 	return !user.IsFirstLogin, nil
+}
 
+func (pg *postgresRepo) List() ([]*domain.User, error) {
+	var users []*domain.User
+	query := `SELECT id, first_name, last_name, email, username FROM users`
+	rows, err := pg.Db.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user domain.User
+		err = rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Username)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	return users, nil
 }
