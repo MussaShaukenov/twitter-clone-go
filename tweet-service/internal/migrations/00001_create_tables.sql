@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS tweet_service_schema.tweets
+CREATE TABLE IF NOT EXISTS tweets
 (
     id         bigserial PRIMARY KEY,
     title      varchar(155)                NOT NULL,
@@ -9,21 +9,21 @@ CREATE TABLE IF NOT EXISTS tweet_service_schema.tweets
     created_at timestamp(0) with time zone NOT NULL DEFAULT now(),
     updated_at timestamp                            DEFAULT current_timestamp
 );
-ALTER TABLE tweet_service_schema.tweets
+ALTER TABLE tweets
     ADD COLUMN user_id INT NOT NULL;
 
-ALTER TABLE tweet_service_schema.tweets
+ALTER TABLE tweets
     ADD CONSTRAINT fk_user
         FOREIGN KEY (user_id) REFERENCES users(id)
             ON DELETE CASCADE
             ON UPDATE CASCADE;
 
-CREATE TABLE IF NOT EXISTS tweet_service_schema.tags (
+CREATE TABLE IF NOT EXISTS tags (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
 );
-CREATE INDEX tags_name_idx ON tweet_service_schema.tags (name);
-CREATE TABLE tweet_service_schema.tweet_tags (
+CREATE INDEX tags_name_idx ON tags (name);
+CREATE TABLE tweet_tags (
     id SERIAL PRIMARY KEY,                -- Auto-incrementing primary key
     tweet_id INT NOT NULL,                -- Foreign key to the 'tweets' table
     tag_id INT NOT NULL,                  -- Foreign key to the 'tags' table
@@ -35,14 +35,14 @@ CREATE TABLE tweet_service_schema.tweet_tags (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS tweet_service_schema.tweets;
-ALTER TABLE tweet_service_schema.tweets
+DROP TABLE IF EXISTS tweets;
+ALTER TABLE tweets
     DROP CONSTRAINT IF EXISTS fk_user;
 
-ALTER TABLE tweet_service_schema.tweets
+ALTER TABLE tweets
     DROP COLUMN IF EXISTS user_id;
 
-DROP TABLE IF EXISTS tweet_service_schema.tags;
-DROP INDEX IF EXISTS tweet_service_schema.tags_name_idx;
-DROP TABLE IF EXISTS tweet_service_schema.tweet_tags;
+DROP TABLE IF EXISTS tags;
+DROP INDEX IF EXISTS tags_name_idx;
+DROP TABLE IF EXISTS tweet_tags;
 -- +goose StatementEnd

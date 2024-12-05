@@ -97,7 +97,7 @@ func setUpDependencies() (*Config, error) {
 		logger: logger.Sugar(),
 		db:     db,
 		redis:  redisClient,
-		addr:   os.Getenv("ADDR"),
+		addr:   ":8002",
 		router: router,
 	}, nil
 }

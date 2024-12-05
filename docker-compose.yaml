@@ -1,40 +1,40 @@
 version: "3.9"
 services:
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: ./docker/Dockerfile
+    container_name: user_service
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone
+      - ADDR=8002
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - db
+      - redis
+      - tweet-service
+    volumes:
+      - ./user-service:/app
+
   tweet-service:
     build:
       context: ./tweet-service
-      dockerfile: Dockerfile
+      dockerfile: ./docker/Dockerfile
     container_name: tweet_service
     ports:
-      - "9001:8000"
-    env_file:
-      - ./tweet-service/.env
+      - "8001:8001"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone?search_path=tweet_service_schema
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone
+      - ADDR=8001
       - REDIS_ADDR=redis:6379
     depends_on:
       - db
       - redis
     volumes:
       - ./tweet-service:/app
-
-  user-service:
-    build:
-      context: ./user-service
-      dockerfile: Dockerfile
-    container_name: user_service
-    ports:
-      - "9002:8000"
-    env_file:
-      - ./user-service/.env
-    environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone?search_path=user_service_schema
-      - REDIS_ADDR=redis:6379
-    depends_on:
-      - db
-      - redis
-    volumes:
-      - ./user-service:/app
 
   db:
     image: postgres:17
@@ -47,7 +47,6 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   redis:
     image: redis:7

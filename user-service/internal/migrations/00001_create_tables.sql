@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS user_service_schema.users
+CREATE TABLE IF NOT EXISTS users
 (
     id         SERIAL PRIMARY KEY,                  -- Auto-incrementing primary key
     first_name VARCHAR(255)        NOT NULL,        -- First name, not null
@@ -12,20 +12,20 @@ CREATE TABLE IF NOT EXISTS user_service_schema.users
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Created timestamp
     updated_at timestamp DEFAULT current_timestamp
 );
-CREATE TABLE user_service_schema.sessions
+CREATE TABLE sessions
 (
     id         SERIAL PRIMARY KEY,
     user_id    INT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     token      VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-ALTER TABLE user_service_schema.users
+ALTER TABLE users
 ADD COLUMN is_first_login BOOLEAN DEFAULT TRUE;
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS user_service_schema.users;
-DROP TABLE IF EXISTS user_service_schema.sessions;
-ALTER TABLE user_service_schema.users DROP COLUMN is_first_login;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS sessions;
+ALTER TABLE users DROP COLUMN is_first_login;
 -- +goose StatementEnd

@@ -34,6 +34,7 @@ func main() {
 	// Set up dependencies
 	config, err := setUpDependencies()
 	defer config.db.Close()
+	defer config.redis.Close()
 
 	if err != nil {
 		config.logger.Fatal("failed to set up dependencies: ", err)
@@ -54,7 +55,7 @@ func main() {
 
 func Serve(config *Config) error {
 	srv := &http.Server{
-		Addr:         config.addr,
+		Addr:         ":8001",
 		Handler:      config.router,
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
@@ -83,8 +84,9 @@ func setUpDependencies() (*Config, error) {
 	db, err := database.OpenDB(databaseUrl)
 	if err != nil {
 		sugar.Fatal("tweet-service: failed to open database: ", err)
+	} else {
+		sugar.Info("tweet-service: connected to database")
 	}
-	sugar.Info("tweet-service: connected to database")
 
 	redisClient, err := redisSetUp(sugar)
 	if err != nil {
