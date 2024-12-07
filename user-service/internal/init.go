@@ -26,17 +26,17 @@ type Config struct {
 
 func InitializeUserApp(config *Config) (http.Handler, error) {
 	// initialize repositories
-	userRepository := userRepo.NewUsersRepo(config.Db)
-	followerRepository := followerRepo.NewFollowersRepo(config.Db)
-	otpRepository := otpRepo.NewOTPRepo(config.Redis)
+	userRepository := userRepo.NewUsersRepo(config.Db, config.Logger)
+	followerRepository := followerRepo.NewFollowersRepo(config.Db, config.Logger)
+	otpRepository := otpRepo.NewOTPRepo(config.Redis, config.Logger)
 
 	// initialize use cases
-	userUseCase := userUC.NewUserUseCase(userRepository, otpRepository)
-	followerUseCase := followerUC.NewFollowerUseCase(userRepository, followerRepository)
+	userUseCase := userUC.NewUserUseCase(userRepository, otpRepository, config.Logger)
+	followerUseCase := followerUC.NewFollowerUseCase(userRepository, followerRepository, config.Logger)
 
 	// initialize controller
-	followerController := followerCtrl.NewFollowerController(followerUseCase)
-	userController := userCtrl.NewUserController(userUseCase)
+	followerController := followerCtrl.NewFollowerController(followerUseCase, config.Logger)
+	userController := userCtrl.NewUserController(userUseCase, config.Logger)
 
 	// register routes
 	config.Router.Mount("/users", ctrl.RegisterUserRoutes(userController))
