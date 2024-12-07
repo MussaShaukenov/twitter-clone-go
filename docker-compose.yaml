@@ -9,11 +9,11 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/twitter_clone
       - ADDR=8002
       - REDIS_ADDR=redis:6379
     depends_on:
-      - db
+      - postgres
       - redis
       - tweet-service
     volumes:
@@ -27,16 +27,18 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/twitter_clone
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/twitter_clone
+      - MONGO_URI=mongodb://root:example@mongo:27017
       - ADDR=8001
       - REDIS_ADDR=redis:6379
     depends_on:
-      - db
+      - postgres
       - redis
+      - mongo
     volumes:
       - ./tweet-service:/app
 
-  db:
+  postgres:
     image: postgres:17
     container_name: postgres_db
     environment:
@@ -47,6 +49,16 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo
+    container_name: mongo_db
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
 
   redis:
     image: redis:7

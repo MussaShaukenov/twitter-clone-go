@@ -185,7 +185,7 @@ func validateDtoInput(dto dto.RegisterUserRequest) error {
 		return err
 	}
 	if dto.Age < 14 {
-		return ErrAgeRestriction
+		return ErrAgeRestrict
 	}
 	return nil
 }

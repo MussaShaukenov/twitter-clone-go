@@ -21,6 +21,13 @@ type Tag struct {
 	Name string
 }
 
+type TweetStats struct {
+	TweetID    int64     `bson:"tweet_id"`
+	Likes      int64     `bson:"likes"`
+	Dislikes   int64     `bson:"dislikes"`
+	LastUpdate time.Time `bson:"last_update"`
+}
+
 func ConvertFromDto(id int, title, content, topic string, userId int) *Tweet {
 	return &Tweet{
 		ID:        int64(id),

@@ -9,11 +9,18 @@ type TweetController interface {
 	UpdateTweetHandler(w http.ResponseWriter, r *http.Request)
 	DeleteTweetHandler(w http.ResponseWriter, r *http.Request)
 	GetUserTweetsHandler(w http.ResponseWriter, r *http.Request)
-	TweetTagController
 }
 
 type TweetTagController interface {
 	AddTweetTagHandler(w http.ResponseWriter, r *http.Request)
 	GetTweetTagsHandler(w http.ResponseWriter, r *http.Request)
 	ListTagsHandler(w http.ResponseWriter, r *http.Request)
+}
+
+type TweetStatsController interface {
+	GetTweetStatsHandler(w http.ResponseWriter, r *http.Request)
+	AddLikeHandler(w http.ResponseWriter, r *http.Request)
+	AddDislikeHandler(w http.ResponseWriter, r *http.Request)
+	RemoveLikeHandler(w http.ResponseWriter, r *http.Request)
+	RemoveDislikeHandler(w http.ResponseWriter, r *http.Request)
 }

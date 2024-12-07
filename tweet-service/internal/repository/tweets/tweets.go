@@ -1,4 +1,4 @@
-package repository
+package tweets
 
 import (
 	"MussaShaukenov/twitter-clone-go/tweet-service/internal/domain"
@@ -14,21 +14,21 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type postgres struct {
+type repository struct {
 	Db          *pgxpool.Pool
 	RedisClient *redis.Client
 	CacheTTL    time.Duration
 }
 
-func NewPostgres(db *pgxpool.Pool, redisClient *redis.Client, cacheTTL time.Duration) *postgres {
-	return &postgres{
+func NewTweetRepository(db *pgxpool.Pool, redisClient *redis.Client, cacheTTL time.Duration) *repository {
+	return &repository{
 		Db:          db,
 		RedisClient: redisClient,
 		CacheTTL:    cacheTTL,
 	}
 }
 
-func (pg *postgres) RebuildCache() error {
+func (pg *repository) RebuildCache() error {
 	// fetch all tweets
 	tweets, err := pg.List()
 	if err != nil {
@@ -43,7 +43,7 @@ func (pg *postgres) RebuildCache() error {
 	return pg.RedisClient.Set(context.Background(), "tweets:list", cachedData, pg.CacheTTL).Err()
 }
 
-func (pg *postgres) Insert(in *domain.Tweet) error {
+func (pg *repository) Insert(in *domain.Tweet) error {
 	query := `
 				INSERT INTO tweets (title, content, topic, user_id) 
 				VALUES ($1, $2, $3, $4)
@@ -68,7 +68,7 @@ func (pg *postgres) Insert(in *domain.Tweet) error {
 	return nil
 }
 
-func (pg *postgres) Get(id int64) (*domain.Tweet, error) {
+func (pg *repository) Get(id int64) (*domain.Tweet, error) {
 	query := `
 				SELECT id, title, content, topic, created_at FROM tweets
 				WHERE id = $1`
@@ -95,7 +95,7 @@ func (pg *postgres) Get(id int64) (*domain.Tweet, error) {
 	return &tweet, nil
 }
 
-func (pg *postgres) List() ([]*domain.Tweet, error) {
+func (pg *repository) List() ([]*domain.Tweet, error) {
 	ctx := context.Background()
 	cacheKey := "tweets:list"
 
@@ -149,7 +149,7 @@ func (pg *postgres) List() ([]*domain.Tweet, error) {
 	return tweets, nil
 }
 
-func (pg *postgres) Update(in *domain.Tweet) (*domain.Tweet, error) {
+func (pg *repository) Update(in *domain.Tweet) (*domain.Tweet, error) {
 	query := `
 			UPDATE tweets 
 			SET title = $1, content = $2, topic = $3, updated_at = NOW()
@@ -187,7 +187,7 @@ func (pg *postgres) Update(in *domain.Tweet) (*domain.Tweet, error) {
 	return in, err
 }
 
-func (pg *postgres) Delete(id int) error {
+func (pg *repository) Delete(id int) error {
 	query := `DELETE FROM tweets WHERE id = $1`
 
 	result, err := pg.Db.Exec(context.Background(), query, id)
@@ -211,7 +211,7 @@ func (pg *postgres) Delete(id int) error {
 	return nil
 }
 
-func (pg *postgres) GetUserTweets(id int) ([]*domain.Tweet, error) {
+func (pg *repository) GetUserTweets(id int) ([]*domain.Tweet, error) {
 	query := `
 			SELECT * FROM tweets
 			WHERE user_id = $1`
@@ -244,70 +244,4 @@ func (pg *postgres) GetUserTweets(id int) ([]*domain.Tweet, error) {
 	}
 
 	return tweets, nil
-}
-
-func (pg *postgres) AddTag(tweetId int64, tagId int64) error {
-	query := `
-			INSERT INTO tweet_tags (tweet_id, tag_id)
-			VALUES ($1, $2)`
-
-	_, err := pg.Db.Exec(context.Background(), query, tweetId, tagId)
-	if err != nil {
-		fmt.Errorf("error adding tag to tweet: %v", err)
-		return err
-	}
-	return nil
-}
-
-func (pg *postgres) GetTweetTags(tweetId int64) ([]*domain.Tag, error) {
-	query := `
-			SELECT t.id, t.name FROM tags t
-			JOIN tweet_tags tt ON t.id = tt.tag_id
-			WHERE tt.tweet_id = $1`
-
-	rows, err := pg.Db.Query(context.Background(), query, tweetId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tags []*domain.Tag
-	for rows.Next() {
-		var tag domain.Tag
-		err = rows.Scan(&tag.ID, &tag.Name)
-		if err != nil {
-			return nil, err
-		}
-		tags = append(tags, &tag)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return tags, nil
-}
-
-func (pg *postgres) ListTags() ([]*domain.Tag, error) {
-	query := `SELECT id, name FROM tags`
-
-	rows, err := pg.Db.Query(context.Background(), query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tags []*domain.Tag
-	for rows.Next() {
-		var tag domain.Tag
-		err = rows.Scan(&tag.ID, &tag.Name)
-		if err != nil {
-			return nil, err
-		}
-		tags = append(tags, &tag)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return tags, nil
 }

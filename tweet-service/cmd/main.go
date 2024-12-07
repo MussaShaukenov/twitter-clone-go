@@ -2,9 +2,10 @@ package main
 
 import (
 	tweet "MussaShaukenov/twitter-clone-go/tweet-service/internal"
-	"MussaShaukenov/twitter-clone-go/tweet-service/pkg/database"
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"os"
 	"time"
@@ -17,11 +18,12 @@ import (
 )
 
 type Config struct {
-	logger *zap.SugaredLogger
-	db     *pgxpool.Pool
-	redis  *redis.Client
-	addr   string
-	router *chi.Mux
+	logger   *zap.SugaredLogger
+	postgres *pgxpool.Pool
+	redis    *redis.Client
+	addr     string
+	router   *chi.Mux
+	mongo    *mongo.Client
 }
 
 func main() {
@@ -33,7 +35,7 @@ func main() {
 
 	// Set up dependencies
 	config, err := setUpDependencies()
-	defer config.db.Close()
+	defer config.postgres.Close()
 	defer config.redis.Close()
 
 	if err != nil {
@@ -81,13 +83,15 @@ func setUpDependencies() (*Config, error) {
 	databaseUrl := os.Getenv("DATABASE_URL")
 	sugar.Info("tweet-service: connecting to database on address: ", databaseUrl)
 
-	db, err := database.OpenDB(databaseUrl)
+	// Postgres setup
+	postgres, err := postgresSetUp(databaseUrl)
 	if err != nil {
 		sugar.Fatal("tweet-service: failed to open database: ", err)
 	} else {
 		sugar.Info("tweet-service: connected to database")
 	}
 
+	// Redis setup
 	redisClient, err := redisSetUp(sugar)
 	if err != nil {
 		sugar.Fatal("tweet-service: failed to connect to redis: ", err)
@@ -95,19 +99,35 @@ func setUpDependencies() (*Config, error) {
 	defer redisClient.Close()
 	sugar.Info("tweet-service: connected to redis")
 
+	// Mongo setup
+	mongoClient, err := mongoSetUp(os.Getenv("MONGO_URI"))
+	defer mongoClient.Disconnect(context.Background())
+	if err != nil {
+		sugar.Fatal("tweet-service: failed to connect to mongo: ", err)
+	}
+	sugar.Info("tweet-service: connected to mongo")
+
 	router := chi.NewRouter()
 
 	return &Config{
-		logger: logger.Sugar(),
-		db:     db,
-		redis:  redisClient,
-		addr:   os.Getenv("ADDR"),
-		router: router,
+		logger:   logger.Sugar(),
+		postgres: postgres,
+		redis:    redisClient,
+		addr:     os.Getenv("ADDR"),
+		router:   router,
+		mongo:    mongoClient,
 	}, nil
 }
 
 func initializeApps(config *Config) error {
-	_, err := tweet.InitializeTweetApp(config.db, config.redis, config.router)
+	cfg := &tweet.Config{
+		Postgres: config.postgres,
+		Redis:    config.redis,
+		Logger:   config.logger,
+		Router:   config.router,
+		Mongo:    config.mongo.Database("twitter-clone"),
+	}
+	_, err := tweet.InitializeTweetApp(cfg)
 	if err != nil {
 		return err
 	}
@@ -130,4 +150,28 @@ func redisSetUp(logger *zap.SugaredLogger) (*redis.Client, error) {
 	logger.Info("connected to redis")
 
 	return redisClient, nil
+}
+
+func mongoSetUp(uri string) (*mongo.Client, error) {
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, err
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func postgresSetUp(dsn string) (*pgxpool.Pool, error) {
+	pool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err = pool.Ping(context.Background()); err != nil {
+		return nil, err
+	}
+	return pool, nil
 }

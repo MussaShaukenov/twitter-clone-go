@@ -15,14 +15,27 @@ func RegisterTweetRoutes(ctrl TweetController) http.Handler {
 	router.Delete("/{id}", ctrl.DeleteTweetHandler)
 	router.Get("/{user_id}", ctrl.GetUserTweetsHandler)
 
+	return router
+}
+
+func RegisterTagsRoutes(ctrl TweetTagController) http.Handler {
+	router := chi.NewRouter()
+
+	router.Get("/", ctrl.ListTagsHandler)
 	router.Post("/{tweet_id}/tags", ctrl.AddTweetTagHandler)
 	router.Get("/{tweet_id}/tags", ctrl.GetTweetTagsHandler)
 
 	return router
 }
 
-func RegisterTagsRoutes(ctrl TweetTagController) http.Handler {
+func RegisterStatsRoutes(ctrl TweetStatsController) http.Handler {
 	router := chi.NewRouter()
-	router.Get("/", ctrl.ListTagsHandler)
+
+	router.Get("/{tweet_id}/stats", ctrl.GetTweetStatsHandler)
+	router.Post("/{tweet_id}/like", ctrl.AddLikeHandler)
+	router.Post("/{tweet_id}/dislike", ctrl.AddDislikeHandler)
+	router.Delete("/{tweet_id}/like", ctrl.RemoveLikeHandler)
+	router.Delete("/{tweet_id}/dislike", ctrl.RemoveDislikeHandler)
+
 	return router
 }

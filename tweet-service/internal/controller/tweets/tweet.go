@@ -1,4 +1,4 @@
-package controller
+package tweets
 
 import (
 	"MussaShaukenov/twitter-clone-go/tweet-service/internal/dto"
@@ -174,66 +174,6 @@ func (c *controller) GetUserTweetsHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	err = utils.WriteJson(w, http.StatusOK, tweets, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func (c *controller) AddTweetTagHandler(w http.ResponseWriter, r *http.Request) {
-	tweetId, err := utils.GetIdFromQueryParam(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	tagId, err := utils.GetIdFromQueryParam(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	err = c.service.AddTag(int64(tweetId), int64(tagId))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = utils.WriteJson(w, http.StatusOK, `{"message": "tag added to tweet"}`, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func (c *controller) GetTweetTagsHandler(w http.ResponseWriter, r *http.Request) {
-	tweetId, err := utils.GetIdFromQueryParam(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	tags, err := c.service.GetTweetTags(int64(tweetId))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = utils.WriteJson(w, http.StatusOK, tags, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func (c *controller) ListTagsHandler(w http.ResponseWriter, r *http.Request) {
-	tags, err := c.service.ListTags()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = utils.WriteJson(w, http.StatusOK, tags, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
