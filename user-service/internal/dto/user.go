@@ -32,3 +32,8 @@ type VerifyOTPRequest struct {
 	Email string `json:"email"`
 	OTP   string `json:"otp"`
 }
+
+type FollowRequest struct {
+	FollowerID int `json:"follower_id"`
+	FollowedID int `json:"followed_id"`
+}

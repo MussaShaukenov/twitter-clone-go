@@ -103,8 +103,14 @@ func setUpDependencies() (*Config, error) {
 }
 
 func initializeApps(config *Config) error {
-	// Initialize the tweet service
-	_, err := user.InitializeUserApp(config.db, config.redis, config.router)
+	cfg := &user.Config{
+		Db:     config.db,
+		Logger: config.logger,
+		Redis:  config.redis,
+		Router: config.router,
+	}
+	// Initialize the user service
+	_, err := user.InitializeUserApp(cfg)
 	if err != nil {
 		return err
 	}

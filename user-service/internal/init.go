@@ -2,23 +2,45 @@ package user
 
 import (
 	ctrl "MussaShaukenov/twitter-clone-go/user-service/internal/controller"
-	repo "MussaShaukenov/twitter-clone-go/user-service/internal/repository"
-	uc "MussaShaukenov/twitter-clone-go/user-service/internal/usecase"
-	"net/http"
-
+	followerCtrl "MussaShaukenov/twitter-clone-go/user-service/internal/controller/followers"
+	userCtrl "MussaShaukenov/twitter-clone-go/user-service/internal/controller/users"
+	followerRepo "MussaShaukenov/twitter-clone-go/user-service/internal/repository/followers"
+	otpRepo "MussaShaukenov/twitter-clone-go/user-service/internal/repository/otp"
+	userRepo "MussaShaukenov/twitter-clone-go/user-service/internal/repository/users"
+	followerUC "MussaShaukenov/twitter-clone-go/user-service/internal/usecase/followers"
+	userUC "MussaShaukenov/twitter-clone-go/user-service/internal/usecase/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
+
+	"net/http"
 )
 
-func InitializeUserApp(db *pgxpool.Pool, redisClient *redis.Client, router chi.Router) (http.Handler, error) {
-	dbRepo := repo.NewPostgres(db)
-	redisRepo := repo.NewRedis(redisClient)
+type Config struct {
+	Db     *pgxpool.Pool
+	Logger *zap.SugaredLogger
+	Redis  *redis.Client
+	Router *chi.Mux
+}
 
-	uc := uc.NewUserUseCase(dbRepo, redisRepo)
-	controller := ctrl.NewController(uc)
+func InitializeUserApp(config *Config) (http.Handler, error) {
+	// initialize repositories
+	userRepository := userRepo.NewUsersRepo(config.Db)
+	followerRepository := followerRepo.NewFollowersRepo(config.Db)
+	otpRepository := otpRepo.NewOTPRepo(config.Redis)
 
-	router.Mount("/users", ctrl.RegisterUserRoutes(controller))
+	// initialize use cases
+	userUseCase := userUC.NewUserUseCase(userRepository, otpRepository)
+	followerUseCase := followerUC.NewFollowerUseCase(userRepository, followerRepository)
 
-	return router, nil
+	// initialize controller
+	followerController := followerCtrl.NewFollowerController(followerUseCase)
+	userController := userCtrl.NewUserController(userUseCase)
+
+	// register routes
+	config.Router.Mount("/users", ctrl.RegisterUserRoutes(userController))
+	config.Router.Mount("/followers", ctrl.RegisterFollowerRoutes(followerController))
+
+	return config.Router, nil
 }

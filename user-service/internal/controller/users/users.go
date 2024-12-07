@@ -1,4 +1,4 @@
-package controller
+package users
 
 import (
 	"MussaShaukenov/twitter-clone-go/user-service/internal/dto"
@@ -13,9 +13,9 @@ type UserController struct {
 	useCase usecase.UserUseCase
 }
 
-func NewController(uc usecase.UserUseCase) *UserController {
+func NewUserController(userUC usecase.UserUseCase) *UserController {
 	return &UserController{
-		useCase: uc,
+		useCase: userUC,
 	}
 }
 

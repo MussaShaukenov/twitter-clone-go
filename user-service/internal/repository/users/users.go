@@ -1,4 +1,4 @@
-package repository
+package users
 
 import (
 	"MussaShaukenov/twitter-clone-go/user-service/internal/domain"
@@ -6,22 +6,21 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
-
 	"github.com/jackc/pgx/v5/pgxpool"
+	"log"
 )
 
-type postgresRepo struct {
+type repo struct {
 	Db *pgxpool.Pool
 }
 
-func NewPostgres(db *pgxpool.Pool) *postgresRepo {
-	return &postgresRepo{
+func NewUsersRepo(db *pgxpool.Pool) *repo {
+	return &repo{
 		Db: db,
 	}
 }
 
-func (pg *postgresRepo) Insert(in *domain.User) error {
+func (pg *repo) Insert(in *domain.User) error {
 	log.Println("User: ", in.FirstName, in.LastName, in.Email, in.Username, in.Password)
 	query := `
 			INSERT INTO users (first_name, last_name, email, username, password) 
@@ -32,7 +31,30 @@ func (pg *postgresRepo) Insert(in *domain.User) error {
 	return pg.Db.QueryRow(context.Background(), query, args...).Scan(&in.ID, &in.CreatedAt)
 }
 
-func (pg *postgresRepo) GetUserEmail(id int) (string, error) {
+func (pg *repo) GetByID(id int) (*domain.User, error) {
+	query := `
+		SELECT id, first_name, last_name, email, username 
+		FROM users 
+		WHERE id = $1`
+
+	var user domain.User
+	err := pg.Db.QueryRow(context.Background(), query, id).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Username,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (pg *repo) GetUserEmail(id int) (string, error) {
 	query := `
 		SELECT email FROM users
 		WHERE id = $1`
@@ -51,7 +73,7 @@ func (pg *postgresRepo) GetUserEmail(id int) (string, error) {
 	return email, nil
 }
 
-func (pg *postgresRepo) Delete(id int) error {
+func (pg *repo) Delete(id int) error {
 	query := `DELETE FROM users WHERE id = $1`
 	result, err := pg.Db.Exec(context.Background(), query, id)
 	if err != nil {
@@ -63,7 +85,7 @@ func (pg *postgresRepo) Delete(id int) error {
 	return nil
 }
 
-func (pg *postgresRepo) GetByUsername(username string) (*domain.User, error) {
+func (pg *repo) GetByUsername(username string) (*domain.User, error) {
 	query := `
 		SELECT id, first_name, last_name, email, username, password 
 		FROM users 
@@ -88,7 +110,7 @@ func (pg *postgresRepo) GetByUsername(username string) (*domain.User, error) {
 	return &user, nil
 }
 
-func (r *postgresRepo) GetByEmail(email string) (*domain.User, error) {
+func (r *repo) GetByEmail(email string) (*domain.User, error) {
 	var user domain.User
 	query := `SELECT id, first_name, last_name, email, username, password FROM users WHERE email = $1`
 	err := r.Db.QueryRow(context.Background(), query, email).Scan(
@@ -104,7 +126,7 @@ func (r *postgresRepo) GetByEmail(email string) (*domain.User, error) {
 	return &user, nil
 }
 
-func (pg *postgresRepo) IsFirstLogin(userId int) (bool, error) {
+func (pg *repo) IsFirstLogin(userId int) (bool, error) {
 	var user domain.User
 	query := `SELECT id, is_first_login FROM users WHERE id = $1`
 	err := pg.Db.QueryRow(context.Background(), query, userId).Scan(&user.ID, &user.IsFirstLogin)
@@ -120,7 +142,7 @@ func (pg *postgresRepo) IsFirstLogin(userId int) (bool, error) {
 	return !user.IsFirstLogin, nil
 }
 
-func (pg *postgresRepo) List() ([]*domain.User, error) {
+func (pg *repo) List() ([]*domain.User, error) {
 	var users []*domain.User
 	query := `SELECT id, first_name, last_name, email, username FROM users`
 	rows, err := pg.Db.Query(context.Background(), query)

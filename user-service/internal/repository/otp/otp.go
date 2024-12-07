@@ -1,4 +1,4 @@
-package repository
+package otp
 
 import (
 	"context"
@@ -9,30 +9,30 @@ import (
 	"time"
 )
 
-type redisRepo struct {
+type repo struct {
 	Redis *redis.Client
 }
 
-func NewRedis(redis *redis.Client) *redisRepo {
-	return &redisRepo{
+func NewOTPRepo(redis *redis.Client) *repo {
+	return &repo{
 		Redis: redis,
 	}
 }
 
-func (r *redisRepo) CreateSession(userID int, token string, ttl time.Duration) error {
+func (r *repo) CreateSession(userID int, token string, ttl time.Duration) error {
 	key := fmt.Sprintf("session:%s", token)
 	value := strconv.Itoa(userID)
 	err := r.Redis.Set(context.Background(), key, value, ttl).Err()
 	return err
 }
 
-func (r *redisRepo) DeleteSession(token string) error {
+func (r *repo) DeleteSession(token string) error {
 	key := fmt.Sprintf("session:%s", token)
 	err := r.Redis.Del(context.Background(), key).Err()
 	return err
 }
 
-func (r *redisRepo) StoreOTP(email, code string) error {
+func (r *repo) StoreOTP(email, code string) error {
 	key := fmt.Sprintf("otp:%s", email)
 	err := r.Redis.Set(context.Background(), key, code, 5*time.Minute).Err()
 	if err != nil {
@@ -41,7 +41,7 @@ func (r *redisRepo) StoreOTP(email, code string) error {
 	return nil
 }
 
-func (r *redisRepo) GetStoreOTP(email string) (string, error) {
+func (r *repo) GetStoreOTP(email string) (string, error) {
 	key := fmt.Sprintf("otp:%s", email)
 	otp, err := r.Redis.Get(context.Background(), key).Result()
 	if err == redis.Nil {
