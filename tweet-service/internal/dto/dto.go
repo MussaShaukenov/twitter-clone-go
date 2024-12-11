@@ -9,7 +9,7 @@ type TweetDto struct {
 	Topic     string    `json:"topic,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty,omitempty"`
-	UserId    int       `json:"userId"`
+	UserId    int       `json:"user_id"`
 }
 
 type TagDto struct {

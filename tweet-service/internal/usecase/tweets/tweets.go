@@ -27,8 +27,12 @@ func (uc *tweetUseCase) Create(dto dto.TweetDto) error {
 	if len(dto.Content) == 0 {
 		return errors.New("content cannot be empty")
 	}
-
-	tweet := domain.ConvertFromDto(0, dto.Title, dto.Content, dto.Topic, dto.UserId)
+	if dto.UserId == 0 {
+		return errors.New("user ID cannot be empty")
+	}
+	log.Println("usecase dto:", dto)
+	tweet := domain.ConvertFromDto(dto.ID, dto.Title, dto.Content, dto.Topic, dto.UserId)
+	log.Println("usecase tweet:", tweet)
 	err := uc.tweetRepository.Insert(tweet)
 	if err != nil {
 		return err

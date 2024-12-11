@@ -4,6 +4,7 @@ import (
 	"MussaShaukenov/twitter-clone-go/tweet-service/internal/dto"
 	"MussaShaukenov/twitter-clone-go/tweet-service/internal/usecase"
 	"MussaShaukenov/twitter-clone-go/tweet-service/pkg/utils"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -23,13 +24,14 @@ func NewController(service usecase.TweetUseCase) *controller {
 func (c *controller) CreateTweetHandler(w http.ResponseWriter, r *http.Request) {
 	var input dto.TweetDto
 
+	log.Println("controller input 1:", input)
 	// Read Body parameters
 	err := utils.ReadJson(w, r, &input)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
+	log.Println("controller input 2:", input)
 	// Call useCase
 	err = c.service.Create(input)
 	if err != nil {

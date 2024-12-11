@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -96,7 +97,6 @@ func setUpDependencies() (*Config, error) {
 	if err != nil {
 		sugar.Fatal("tweet-service: failed to connect to redis: ", err)
 	}
-	defer redisClient.Close()
 	sugar.Info("tweet-service: connected to redis")
 
 	// Mongo setup

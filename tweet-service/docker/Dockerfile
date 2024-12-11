@@ -6,16 +6,15 @@ WORKDIR /app
 RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 
 # Copy project files
-COPY ../go.mod go.sum ./
+COPY ./go.mod ./go.sum ./
 RUN go mod download
-
-COPY .. .
+COPY . .
 
 EXPOSE 8001
 
-ARG DATABASE_URL=postgres://postgres:admin@db:5432/twitter_clone?sslmode=disable
-# Run migrations
+# Copy entrypoint.sh and make it executable
+COPY ./docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-#ENTRYPOINT goose -dir ./internal/migrations postgres $DATABASE_URL up
-# Build the application
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["go", "run", "cmd/main.go"]

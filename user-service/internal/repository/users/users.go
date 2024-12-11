@@ -25,11 +25,11 @@ func NewUsersRepo(db *pgxpool.Pool, logger *zap.SugaredLogger) *repository {
 func (repo *repository) Insert(in *domain.User) error {
 	repo.logger.Infow("Inserting user into repository", "user", in)
 	query := `
-			INSERT INTO users (first_name, last_name, email, username, password) 
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO users (first_name, last_name, email, username, password, age) 
+			VALUES ($1, $2, $3, $4, $5, $6)
 			RETURNING id, created_at`
 
-	args := []interface{}{in.FirstName, in.LastName, in.Email, in.Username, in.Password}
+	args := []interface{}{in.FirstName, in.LastName, in.Email, in.Username, in.Password, in.Age}
 	err := repo.db.QueryRow(context.Background(), query, args...).Scan(&in.ID, &in.CreatedAt)
 	if err != nil {
 		repo.logger.Errorw("Failed to insert user", "error", err)

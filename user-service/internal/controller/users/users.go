@@ -93,10 +93,10 @@ func (ctrl *UserController) Authorize2FAHandler(w http.ResponseWriter, r *http.R
 
 	ctrl.logger.Infow("incoming input", "input", input)
 
-	token := ctrl.useCase.Authorize2FA(input.Username)
+	otp := ctrl.useCase.Authorize2FA(input.Username)
 	response := map[string]string{
 		"message": "successfully authorized",
-		"token":   token,
+		"otp":     otp,
 	}
 
 	err = utils.WriteJson(w, http.StatusOK, response, nil)

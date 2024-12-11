@@ -44,13 +44,14 @@ func (pg *repository) RebuildCache() error {
 }
 
 func (pg *repository) Insert(in *domain.Tweet) error {
+	log.Println("in: ", in)
+
 	query := `
-				INSERT INTO tweets (title, content, topic, user_id) 
-				VALUES ($1, $2, $3, $4)
-				RETURNING id, created_at`
+			INSERT INTO tweets (title, content, topic, user_id, created_at, updated_at) 
+			VALUES ($1, $2, $3, $4, NOW(), NOW())`
 
 	args := []interface{}{in.Title, in.Content, in.Topic, in.UserId}
-	err := pg.Db.QueryRow(context.Background(), query, args...).Scan(&in.ID, &in.CreatedAt)
+	_, err := pg.Db.Exec(context.Background(), query, args...)
 	if err != nil {
 		return err
 	}
@@ -109,8 +110,8 @@ func (pg *repository) List() ([]*domain.Tweet, error) {
 			return tweets, nil
 		}
 	}
-	log.Println("simulating long query")
-	time.Sleep(5 * time.Second)
+	//log.Println("simulating long query")
+	//time.Sleep(5 * time.Second)
 	query := `SELECT id, title, content, topic, created_at FROM tweets`
 
 	rows, err := pg.Db.Query(context.Background(), query)

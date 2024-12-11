@@ -5,16 +5,16 @@ import (
 )
 
 type User struct {
-	ID           int
-	FirstName    string
-	LastName     string
-	Email        string
-	Age          int
-	Username     string
-	Password     string
-	IsFirstLogin bool // New field to track first login
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID           int       `json:"id"`
+	FirstName    string    `json:"firstName"`
+	LastName     string    `json:"lastName"`
+	Email        string    `json:"email"`
+	Age          int       `json:"age"`
+	Username     string    `json:"username"`
+	Password     string    `json:"-"`
+	IsFirstLogin bool      `json:"isFirstLogin"` // New field to track first login
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 type Follower struct {

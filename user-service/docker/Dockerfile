@@ -13,10 +13,9 @@ COPY .. .
 
 EXPOSE 8002
 
-ARG DATABASE_URL=postgres://postgres:admin@db:5432/twitter_clone?sslmode=disable
+# Copy entrypoint.sh and make it executable
+COPY ./docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Run migrations
-#ENTRYPOINT goose -dir ./internal/migrations postgres $DATABASE_URL up
-
-# Build the application
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["go", "run", "cmd/main.go"]
